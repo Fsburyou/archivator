@@ -1,0 +1,236 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <iterator>
+#include <fstream>
+#include <string.h>
+
+using namespace std;
+
+struct Forest {
+    int weight;
+    int root;
+    char znak;
+};
+
+Forest forest[512];
+
+struct Tree {
+    int left;
+    int right;
+    int parent;
+    char znak;
+};
+
+Tree tree[512];
+
+FILE *f;
+FILE *g;
+
+pair<int, int> Get_Min(int size_forest, int pos1, int pos2) {
+    for (int i = 0; i <= size_forest; i++) {
+        if (forest[i].weight < forest[pos1].weight) {
+            pos2 = pos1;
+            pos1 = i;
+        } else if (forest[i].weight < forest[pos2].weight || pos2 == pos1 && pos2 == 0) {
+            pos2 = i;
+        }
+    }
+    return make_pair(pos1, pos2);
+}
+
+struct Code {
+    vector <bool> shifr;
+    int len;
+    char znak;
+};
+
+Code code[512];
+
+void archivator () {
+    int kol_dif = 512;
+    int freq[kol_dif];
+
+    for (int i = 0; i < kol_dif; i++) {
+        freq[i] = 0;
+    }
+
+    unsigned char ch;
+    while (fscanf(f, "%c", &ch) != -1) {
+        freq[ch]++;
+    }
+
+    int size_forest = -1;
+    for (int i = 0; i < kol_dif; i++) {
+        if (freq[i] > 0) {
+            size_forest++;
+            forest[size_forest].root = size_forest;
+            forest[size_forest].weight = freq[i];
+            forest[size_forest].znak = i;
+        }
+    }
+
+    for (int i = 0; i <= size_forest; i++) {
+        tree[i].left = -1;
+        tree[i].right = -1;
+        tree[i].parent = -1;
+        tree[i].znak = forest[i].znak;
+    }
+
+    int size_tree = size_forest;
+    int cnt = size_tree;
+    while (size_forest > 0) {
+        auto p = Get_Min(size_forest, 0, 0);
+        size_tree++;
+        tree[size_tree].left = forest[p.first].root;
+        tree[size_tree].right = forest[p.second].root;
+        tree[size_tree].parent = -1;
+        tree[forest[p.first].root].parent = size_tree;
+        tree[forest[p.second].root].parent = size_tree;
+        forest[p.first].weight += forest[p.second].weight;
+        forest[p.first].root = size_tree;
+        forest[p.second] = forest[size_forest];
+        size_forest--;
+    }
+
+    // codirovanie:
+    int v;
+    for (int i = 0; i <= cnt; i++) {
+        v = i;
+        while (tree[v].parent != -1) {
+            if (tree[tree[v].parent].left == v) {
+                code[tree[i].znak].shifr.push_back(0);
+            } else if (tree[tree[v].parent].right == v) {
+                code[tree[i].znak].shifr.push_back(1);
+            } else
+                break;
+            v = tree[v].parent;
+            code[tree[i].znak].len++;
+        }
+        code[tree[i].znak].znak = tree[i].znak;
+        reverse(code[tree[i].znak].shifr.begin(), code[tree[i].znak].shifr.end());
+    }
+
+    f = fopen("input.txt", "rb");
+    g = fopen("output.txt", "wb");
+
+    for (int i = 0; i < 512; i++) {
+        fprintf(g, "%d ", freq[i]);
+    }
+
+    while (fscanf(f, "%c", &ch) != -1) {
+        for (int i = 0; i < code[ch].len; i++) {
+            fprintf(g, "%d", code[ch].shifr[i]);
+        }
+    }
+}
+
+void razarchivator () {
+    int kol_dif = 512;
+    int freq[kol_dif];
+    for (int i = 0; i < kol_dif; i++) {
+        freq[i] = 0;
+    }
+
+    int fr;
+    unsigned char zn;
+    int kol = 0;
+    for (int i = 0; i < kol_dif; i++) {
+        fscanf(f, "%d", &fr);
+        fscanf(f, "%c", &zn);
+        freq[i] = fr;
+        kol += fr;
+    }
+
+    int size_forest = -1;
+
+    for (int i = 0; i < kol_dif; i++) {
+        if (freq[i] > 0) {
+            size_forest++;
+            forest[size_forest].root = size_forest;
+            forest[size_forest].weight = freq[i];
+            forest[size_forest].znak = i;
+        }
+    }
+
+    for (int i = 0; i <= size_forest; i++) {
+        tree[i].left = -1;
+        tree[i].right = -1;
+        tree[i].parent = -1;
+        tree[i].znak = forest[i].znak;
+    }
+
+    int size_tree = size_forest;
+    int cnt = size_forest;
+
+    while (size_forest > 0) {
+        auto p = Get_Min(size_forest, 0, 0);
+        size_tree++;
+        tree[size_tree].left = forest[p.first].root;
+        tree[size_tree].right = forest[p.second].root;
+        tree[size_tree].parent = -1;
+        tree[forest[p.first].root].parent = size_tree;
+        tree[forest[p.second].root].parent = size_tree;
+        forest[p.first].weight += forest[p.second].weight;
+        forest[p.first].root = size_tree;
+        forest[p.second] = forest[size_forest];
+        size_forest--;
+    }
+
+    int v;
+    int versh = -1;
+    for (int i = 0; i <= cnt; i++) {
+        v = i;
+        while (tree[v].parent != -1) {
+            if (tree[tree[v].parent].left == v) {
+                code[tree[i].znak].shifr.push_back(0);
+            } else if (tree[tree[v].parent].right == v) {
+                code[tree[i].znak].shifr.push_back(1);
+            } else
+                break;
+            v = tree[v].parent;
+            code[tree[i].znak].len++;
+        }
+        if (versh == -1)
+            versh = v;
+        code[tree[i].znak].znak = tree[i].znak;
+        reverse(code[tree[i].znak].shifr.begin(), code[tree[i].znak].shifr.end());
+    }
+
+    int cur = versh;
+    unsigned char dfr;
+    while (kol > 0) {
+        fscanf(f, "%c", &dfr);
+        if (dfr == '1') {
+            cur = tree[cur].right;
+        } else {
+            cur = tree[cur].left;
+        }
+        if (tree[cur].left == -1 && tree[cur].right == -1) {
+            fprintf(g, "%c", tree[cur].znak);
+            cur = versh;
+            kol--;
+        }
+    }
+}
+
+int32_t main(int argc, char *argv[]) {
+
+    cout.tie(nullptr);
+    cin.tie(nullptr);
+    ios_base::sync_with_stdio(false);
+
+    if (!strcmp("encode", argv[1])) {
+        f = fopen("input.txt", "rb");
+        g = fopen("output.txt", "wb");
+
+        archivator();
+    } else {
+        f = fopen("input.txt", "rb");
+        g = fopen("output.txt", "wb");
+
+        razarchivator();
+    }
+
+    return 0;
+}
