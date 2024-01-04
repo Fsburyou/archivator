@@ -10,58 +10,63 @@ using namespace std;
 struct Forest {
     int weight;
     int root;
-    char znak;
+    unsigned char znak;
 };
 
-Forest forest[512];
+Forest forest[513];
 
 struct Tree {
     int left;
     int right;
     int parent;
-    char znak;
+    unsigned char znak;
 };
 
-Tree tree[512];
+Tree tree[513];
 
 FILE *f;
 FILE *g;
 
-pair<int, int> Get_Min(int size_forest, int pos1, int pos2) {
-    for (int i = 0; i <= size_forest; i++) {
+struct Code {
+    vector <bool> shifr;
+};
+
+Code code[513];
+
+pair <int, int> Get_Min(int size_forest, int pos1, int pos2) {
+    if (forest[1].weight < forest[pos1].weight)
+        pos1 = 1;
+    else
+        pos2 = 1;
+
+    for (int i = 2; i <= size_forest; i++) {
         if (forest[i].weight < forest[pos1].weight) {
             pos2 = pos1;
             pos1 = i;
-        } else if (forest[i].weight < forest[pos2].weight || pos2 == pos1 && pos2 == 0) {
+        } else if (forest[i].weight < forest[pos2].weight || pos2 == pos1 && i > 0) {
             pos2 = i;
         }
     }
     return make_pair(pos1, pos2);
 }
 
-struct Code {
-    vector <bool> shifr;
-    int len;
-    char znak;
-};
-
-Code code[512];
-
 void archivator () {
-    int kol_dif = 512;
-    int freq[kol_dif];
+    int freq[513];
 
-    for (int i = 0; i < kol_dif; i++) {
+    // clean array
+    for (int i = 0; i < 513; i++) {
         freq[i] = 0;
     }
 
+    // count frequency
     unsigned char ch;
     while (fscanf(f, "%c", &ch) != -1) {
         freq[ch]++;
     }
 
+    // build forest
     int size_forest = -1;
-    for (int i = 0; i < kol_dif; i++) {
+    for (int i = 0; i < 513; i++) {
         if (freq[i] > 0) {
             size_forest++;
             forest[size_forest].root = size_forest;
@@ -70,6 +75,7 @@ void archivator () {
         }
     }
 
+    // tree's leaves
     for (int i = 0; i <= size_forest; i++) {
         tree[i].left = -1;
         tree[i].right = -1;
@@ -77,8 +83,9 @@ void archivator () {
         tree[i].znak = forest[i].znak;
     }
 
+    // build tree
     int size_tree = size_forest;
-    int cnt = size_tree;
+    int cnt = size_forest;
     while (size_forest > 0) {
         auto p = Get_Min(size_forest, 0, 0);
         size_tree++;
@@ -93,7 +100,7 @@ void archivator () {
         size_forest--;
     }
 
-    // kodirovanie:
+    // code
     int v;
     for (int i = 0; i <= cnt; i++) {
         v = i;
@@ -105,46 +112,61 @@ void archivator () {
             } else
                 break;
             v = tree[v].parent;
-            code[tree[i].znak].len++;
         }
-        code[tree[i].znak].znak = tree[i].znak;
         reverse(code[tree[i].znak].shifr.begin(), code[tree[i].znak].shifr.end());
     }
 
     rewind(f);
     rewind(g);
 
-    for (int i = 0; i < 512; i++) {
+    // print in output.txt
+    for (int i = 0; i < 513; i++) {
         fprintf(g, "%d ", freq[i]);
     }
 
+    unsigned char byte = 0;
+    short int eight = 0;
     while (fscanf(f, "%c", &ch) != -1) {
-        for (int i = 0; i < code[ch].len; i++) {
-            fprintf(g, "%d", code[ch].shifr[i]);
+        for (int i = 0; i < code[ch].shifr.size(); i++) {
+            byte <<= 1;
+            byte += code[ch].shifr[i];
+            eight++;
+            if (eight == 8) {
+                fprintf(g, "%c", byte);
+                eight = 0;
+                byte = 0;
+            }
         }
+    }
+    if (eight > 0) {
+        byte <<= (8 - eight);
+        fprintf(g, "%c", byte);
     }
 }
 
 void razarchivator () {
-    int kol_dif = 512;
-    int freq[kol_dif];
-    for (int i = 0; i < kol_dif; i++) {
+    int freq[513];
+
+    // clean frequency array
+    for (int i = 0; i < 513; i++) {
         freq[i] = 0;
     }
 
-    int fr;
-    unsigned char zn;
-    int kol = 0;
-    for (int i = 0; i < kol_dif; i++) {
-        fscanf(f, "%d", &fr);
-        fscanf(f, "%c", &zn);
-        freq[i] = fr;
-        kol += fr;
+    // read frequency array
+    int frequency;
+    unsigned char space;
+    long long kol = 0;
+    for (int i = 0; i < 513; i++) {
+        fscanf(f, "%d", &frequency);
+        fscanf(f, "%c", &space);
+        freq[i] = frequency;
+        kol += frequency;
     }
 
     int size_forest = -1;
 
-    for (int i = 0; i < kol_dif; i++) {
+    // build forest
+    for (int i = 0; i < 513; i++) {
         if (freq[i] > 0) {
             size_forest++;
             forest[size_forest].root = size_forest;
@@ -153,6 +175,7 @@ void razarchivator () {
         }
     }
 
+    // tree's leaves
     for (int i = 0; i <= size_forest; i++) {
         tree[i].left = -1;
         tree[i].right = -1;
@@ -160,9 +183,9 @@ void razarchivator () {
         tree[i].znak = forest[i].znak;
     }
 
+    // build tree
     int size_tree = size_forest;
     int cnt = size_forest;
-
     while (size_forest > 0) {
         auto p = Get_Min(size_forest, 0, 0);
         size_tree++;
@@ -177,6 +200,7 @@ void razarchivator () {
         size_forest--;
     }
 
+    // code
     int v;
     int versh = -1;
     for (int i = 0; i <= cnt; i++) {
@@ -189,27 +213,29 @@ void razarchivator () {
             } else
                 break;
             v = tree[v].parent;
-            code[tree[i].znak].len++;
         }
         if (versh == -1)
             versh = v;
-        code[tree[i].znak].znak = tree[i].znak;
         reverse(code[tree[i].znak].shifr.begin(), code[tree[i].znak].shifr.end());
     }
 
     int cur = versh;
-    unsigned char dfr;
+    unsigned char znak;
     while (kol > 0) {
-        fscanf(f, "%c", &dfr);
-        if (dfr == '1') {
-            cur = tree[cur].right;
-        } else {
-            cur = tree[cur].left;
-        }
-        if (tree[cur].left == -1 && tree[cur].right == -1) {
-            fprintf(g, "%c", tree[cur].znak);
-            cur = versh;
-            kol--;
+        fscanf(f, "%c", &znak);
+        for (int i = 7; i >= 0; i--) {
+            if (kol <= 0)
+                return;
+            if ((1 << i) & znak) {
+                cur = tree[cur].right;
+            } else {
+                cur = tree[cur].left;
+            }
+            if (tree[cur].left == -1 && tree[cur].right == -1) {
+                fprintf(g, "%c", tree[cur].znak);
+                cur = versh;
+                kol--;
+            }
         }
     }
 }
@@ -232,5 +258,19 @@ int32_t main(int argc, char *argv[]) {
         razarchivator();
     }
 
+    /* string s;
+    cin >> s;
+    if (s == "encode") {
+        f = fopen("test.jpg", "rb");
+        g = fopen("output.txt", "wb");
+
+        archivator();
+    }
+    else {
+        f = fopen("output.txt", "rb");
+        g = fopen("test1.jpg", "wb");
+
+        razarchivator();
+    } */
     return 0;
 }
